@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Log a meal</h1>
+    <div class="muted">Tap a food, choose how much, and log it.</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <input id="search" placeholder="🔍 Search food by name or barcode…" autofocus>
+</div>
+
+<div class="food-grid" id="grid">
+  {% for f in foods %}
+    <button type="button" class="food" data-food='{{ f|tojson }}'
+            data-search="{{ (f.name ~ ' ' ~ f.barcode)|lower }}">
+      <div class="emoji">{{ f.emoji }}</div>
+      <div class="name">{{ f.name }}</div>
+      <div class="macros">{{ '%.0f'|format(f.kcal) }} kcal · P {{ '%g'|format(f.protein_g) }}g ·
+        C {{ '%g'|format(f.carbs_g) }}g · F {{ '%g'|format(f.fat_g) }}g</div>
+      <span class="pill">{% if f.serving %}1 {{ f.serving }} ≈ {{ f.serving_g }} g{% else %}per 100 g{% endif %}</span>
+      {% if f.stock_g > 0 %}<span class="pill">{{ '%g'|format(f.stock_g) }} g in stock</span>{% endif %}
+    </button>
+  {% endfor %}
+</div>
+<p id="none" class="empty" style="display:none">No food matches. <a href="{{ url_for('foods') }}">Add it to the database →</a></p>
+
+<form method="post" class="log-panel" id="panel">
+  <input type="hidden" name="barcode" id="barcode">
+  <div class="row">
+    <div style="flex:2; min-width:180px">
+      <label>Selected</label>
+      <div class="preview" id="preview">–</div>
+    </div>
+    <div>
+      <label>Meal</label>
+      <select name="meal">
+        {% for m in meals %}<option {{ 'selected' if m == meal }}>{{ m }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Grams</label>
+      <input name="grams" id="grams" type="number" step="any" min="1" required>
+    </div>
+    <button class="btn">Log it</button>
+  </div>
+  <div class="chips" id="chips"></div>
+</form>
+
+<script>
+  const panel = document.getElementById("panel"), grams = document.getElementById("grams");
+  const preview = document.getElementById("preview"), chips = document.getElementById("chips");
+  let current = null;
+
+  function update() {
+    if (!current) return;
+    const g = parseFloat(grams.value) || 0, k = n => (current[n] * g / 100);
+    preview.textContent = `${current.emoji} ${current.name} · ${k("kcal").toFixed(0)} kcal`
+      + ` (P ${k("protein_g").toFixed(1)}g, C ${k("carbs_g").toFixed(1)}g, F ${k("fat_g").toFixed(1)}g)`;
+  }
+
+  document.querySelectorAll(".food").forEach(card => card.addEventListener("click", () => {
+    document.querySelectorAll(".food.selected").forEach(c => c.classList.remove("selected"));
+    card.classList.add("selected");
+    current = JSON.parse(card.dataset.food);
+    document.getElementById("barcode").value = current.barcode;
+    chips.innerHTML = "";
+    const opts = current.serving
+      ? [1, 2, 3].map(n => [`${n} ${current.serving}${n > 1 ? "s" : ""}`, n * current.serving_g])
+      : [["50 g", 50], ["100 g", 100], ["200 g", 200]];
+    opts.forEach(([label, g]) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = label;
+      b.onclick = () => { grams.value = g; update(); };
+      chips.appendChild(b);
+    });
+    grams.value = opts[0][1];
+    panel.classList.add("show");
+    update();
+    grams.focus();
+  }));
+  grams.addEventListener("input", update);
+
+  document.getElementById("search").addEventListener("input", e => {
+    const q = e.target.value.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll(".food").forEach(c => {
+      const ok = c.dataset.search.includes(q);
+      c.style.display = ok ? "" : "none";
+      shown += ok;
+    });
+    document.getElementById("none").style.display = shown ? "none" : "block";
+  });
+</script>
+{% endblock %}

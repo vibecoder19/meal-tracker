@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Today</h1>
+    <div class="muted">{{ today }}</div>
+  </div>
+  <a class="btn" href="{{ url_for('log_meal') }}">+ Log a meal</a>
+</div>
+
+<div class="grid grid-5" style="margin-bottom:18px">
+  {% for k, label in names.items() %}
+    {% set pct = (t[k] / goals[k] * 100) if goals[k] else 0 %}
+    <div class="card stat {{ k }}">
+      <div class="label">{{ label }}</div>
+      <div class="value">{{ '%.0f'|format(t[k]) }}
+        <small>/ {{ '%.0f'|format(goals[k]) }} {{ suffix[k] }}</small></div>
+      <div class="bar"><div class="{{ 'over' if pct > 100 }}"
+           style="width: {{ [pct, 100]|min }}%"></div></div>
+      <div class="muted small" style="margin-top:6px">{{ '%.0f'|format(pct) }}% of goal</div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>What I ate</h2>
+    {% for meal, items in by_meal.items() %}
+      <div class="meal-block">
+        <div class="meal-title">
+          <h3>{{ meal }}</h3>
+          <span class="muted small">{{ '%.0f'|format(items|sum(attribute='eaten_kcal')) }} kcal</span>
+        </div>
+        {% for e in items %}
+          <div class="entry">
+            <div class="emoji">{{ e.emoji }}</div>
+            <div class="info">{{ e.name }}<div class="muted small">{{ '%g'|format(e.grams) }} g</div></div>
+            <div class="kcal">{{ '%.0f'|format(e.eaten_kcal) }} kcal</div>
+            <form method="post" action="{{ url_for('delete_entry', entry_id=e.id) }}">
+              <button class="x-btn" title="Remove">✕</button>
+            </form>
+          </div>
+        {% else %}
+          <div class="empty">Nothing yet · <a href="{{ url_for('log_meal', meal=meal) }}">add {{ meal|lower }}</a></div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="grid" style="align-content:start">
+    <div class="card">
+      <h2>💧 Water</h2>
+      <div class="muted small">{{ '%.0f'|format(t.water_ml) }} of {{ '%.0f'|format(goals.water_ml) }} ml</div>
+      <form method="post" action="{{ url_for('add_water') }}" class="row" style="margin-top:8px">
+        <input name="amount" type="number" step="any" min="0" value="1" required>
+        <select name="unit">
+          {% for u in units %}<option {{ 'selected' if u == 'glass' }}>{{ u }}</option>{% endfor %}
+        </select>
+        <button class="btn">Add</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Calories by macro</h2>
+      <canvas id="macroChart" height="200"></canvas>
+      <p id="noMacro" class="empty" style="display:none">No meals logged yet</p>
+    </div>
+    <div class="card">
+      <h2>Last 7 days</h2>
+      <canvas id="weekChart" height="180"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+  Chart.defaults.font.family = "Poppins, Segoe UI, sans-serif";
+  const cal = [{{ t.carbs_g * 4 }}, {{ t.protein_g * 4 }}, {{ t.fat_g * 9 }}];
+  if (cal.reduce((a, b) => a + b, 0) > 0) {
+    new Chart(document.getElementById("macroChart"), {
+      type: "doughnut",
+      data: { labels: ["Carbs", "Protein", "Fat"],
+              datasets: [{ data: cal.map(Math.round), backgroundColor: ["#f08c3a", "#2f9e62", "#3b8fd9"], borderWidth: 0 }] },
+      options: { cutout: "65%", plugins: { legend: { position: "bottom" } } }
+    });
+  } else {
+    document.getElementById("macroChart").style.display = "none";
+    document.getElementById("noMacro").style.display = "block";
+  }
+  const week = {{ week|tojson }};
+  new Chart(document.getElementById("weekChart"), {
+    type: "bar",
+    data: { labels: week.map(d => d.label),
+            datasets: [{ data: week.map(d => d.kcal), backgroundColor: "#2f9e62", borderRadius: 6 }] },
+    options: { plugins: { legend: { display: false } },
+               scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } }
+  });
+</script>
+{% endblock %}

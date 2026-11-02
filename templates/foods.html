@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Food database</h1>
+    <div class="muted">Shared by every user. Values are per 100 g.</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>All foods ({{ foods|length }})</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Food</th><th class="n">kcal</th><th class="n">Carbs</th>
+            <th class="n">Protein</th><th class="n">Fat</th><th class="n">Stock</th></tr>
+        {% for f in foods %}
+          <tr>
+            <td>{{ f.emoji }} {{ f.name }}<div class="muted small">{{ f.barcode }}</div></td>
+            <td class="n">{{ '%g'|format(f.kcal) }}</td>
+            <td class="n">{{ '%g'|format(f.carbs_g) }}</td>
+            <td class="n">{{ '%g'|format(f.protein_g) }}</td>
+            <td class="n">{{ '%g'|format(f.fat_g) }}</td>
+            <td class="n">{{ ('%g g'|format(f.stock_g)) if f.stock_g > 0 else 'loose' }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="align-self:start">
+    <h2>Add / edit a food</h2>
+    <p class="muted small">Type a barcode and press Look up to fetch it from Open Food Facts.
+      Stock 0 = loose item that never runs out.</p>
+    <form method="post" id="foodForm">
+      <label>Barcode</label>
+      <div class="row">
+        <input name="barcode" id="f-barcode" required>
+        <button type="button" class="btn ghost" id="lookupBtn">Look up</button>
+      </div>
+      <div class="small" id="lookupMsg" style="margin-top:6px"></div>
+      <label>Name</label>
+      <input name="name" id="f-name" required>
+      <div class="row">
+        <div><label>Calories</label><input name="kcal" id="f-kcal" type="number" step="any"></div>
+        <div><label>Stock (g)</label><input name="stock_g" id="f-stock_g" type="number" step="any" value="0"></div>
+      </div>
+      <div class="row">
+        <div><label>Carbs g</label><input name="carbs_g" id="f-carbs_g" type="number" step="any"></div>
+        <div><label>Protein g</label><input name="protein_g" id="f-protein_g" type="number" step="any"></div>
+        <div><label>Fat g</label><input name="fat_g" id="f-fat_g" type="number" step="any"></div>
+      </div>
+      <button class="btn block" style="margin-top:16px">Save food</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.getElementById("lookupBtn").addEventListener("click", async () => {
+    const code = document.getElementById("f-barcode").value.trim(), out = document.getElementById("lookupMsg");
+    if (!code) { out.textContent = "Type a barcode first."; return; }
+    out.textContent = "Looking up…";
+    const r = await (await fetch("/lookup/" + encodeURIComponent(code))).json();
+    if (!r.found) { out.textContent = "Not found. Type the values once, then Save."; return; }
+    for (const [k, v] of Object.entries(r.food)) {
+      const box = document.getElementById("f-" + k);
+      if (box && k !== "barcode") box.value = v;
+    }
+    out.textContent = r.found === "local" ? "Found in your database." : "Found online. Check values, add stock, then Save.";
+  });
+</script>
+{% endblock %}

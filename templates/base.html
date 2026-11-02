@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% block page %}
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="{{ url_for('dashboard') }}">🥗 Meal<span>Tracker</span></a>
+      <div class="nav-links">
+        {% set ep = request.endpoint %}
+        <a href="{{ url_for('dashboard') }}" class="{{ 'active' if ep == 'dashboard' }}">Today</a>
+        <a href="{{ url_for('log_meal') }}" class="{{ 'active' if ep == 'log_meal' }}">Log meal</a>
+        <a href="{{ url_for('foods') }}" class="{{ 'active' if ep == 'foods' }}">Foods</a>
+        <a href="{{ url_for('goals') }}" class="{{ 'active' if ep == 'goals' }}">Goals</a>
+      </div>
+      <div class="nav-user">Hi, <b>{{ user }}</b>
+        <a class="btn ghost" href="{{ url_for('logout') }}">Logout</a></div>
+    </div>
+  </nav>
+  <main>
+    {% for cat, m in get_flashed_messages(with_categories=true) %}
+      <div class="flash {{ cat }}">{{ m }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+{% endblock %}
+</body>
+</html>

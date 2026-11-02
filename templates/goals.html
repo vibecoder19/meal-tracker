@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>My daily goals</h1>
+    <div class="muted">These targets drive the progress bars on the Today page.</div>
+  </div>
+</div>
+<div class="card" style="max-width:480px">
+  <form method="post">
+    {% for k, label in names.items() %}
+      <label>{{ label }} ({{ suffix[k] }})</label>
+      <input name="{{ k }}" type="number" step="any" min="0" value="{{ '%g'|format(goals[k]) }}">
+    {% endfor %}
+    <button class="btn block" style="margin-top:18px">Save goals</button>
+  </form>
+</div>
+{% endblock %}

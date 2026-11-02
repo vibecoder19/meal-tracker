@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Login · {{ APP_NAME }}{% endblock %}
+{% block page %}
+<div class="login-page">
+  <section class="login-hero">
+    <h1>Eat smart.<br>Track simply.</h1>
+    <p>Plan your meals, count calories and macros, keep an eye on water, and hit your daily goals.</p>
+    <div class="hero-emojis">🍳🥛🫓🍚🍌🥜</div>
+  </section>
+  <section class="login-box">
+    <div class="card">
+      <h2>Welcome to {{ APP_NAME }}</h2>
+      <p class="muted small">Log in, or pick a username and PIN to create an account.</p>
+      {% for cat, m in get_flashed_messages(with_categories=true) %}
+        <div class="flash {{ cat }}">{{ m }}</div>
+      {% endfor %}
+      <form method="post">
+        <label>Username</label>
+        <input name="username" required autofocus>
+        <label>PIN (4+ characters)</label>
+        <input name="pin" type="password" required>
+        <div style="margin-top:18px; display:grid; gap:8px">
+          <button class="btn block" name="action" value="login">Login</button>
+          <button class="btn ghost block" name="action" value="signup">Create account</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}
